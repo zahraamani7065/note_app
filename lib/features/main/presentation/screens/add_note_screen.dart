@@ -1,17 +1,14 @@
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'dart:math';
-import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:note_app/core/strings/string.dart';
 import 'package:note_app/core/utils/images/svg_logos.dart';
-import 'package:note_app/features/main/presentation/widgets/sketchPainter.dart';
 import 'package:signature/signature.dart';
-import 'package:flutter/widgets.dart' show Image;
-import '../../../../core/Services/locator.dart';
+
 import '../../data/model/drawing_mode.dart';
 import '../../data/model/sketch.dart';
-import '../bloc/note_list_bloc.dart';
 import '../widgets/cannvas_side_bar.dart';
 import '../widgets/drawing_canvas.dart';
 
@@ -41,10 +38,10 @@ class AddNoteScreen extends HookWidget {
     final isWritingMode = useState<bool>(true);
     final descriptionController = useTextEditingController();
     final ctrlSing = useMemoized(() => SignatureController(
-      penStrokeWidth: 5,
-      penColor: Colors.red,
-      exportBackgroundColor: Colors.transparent,
-    ));
+          penStrokeWidth: 5,
+          penColor: Colors.red,
+          exportBackgroundColor: Colors.transparent,
+        ));
 
     final themeData = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
@@ -61,155 +58,199 @@ class AddNoteScreen extends HookWidget {
     return Scaffold(
       backgroundColor: themeData.backgroundColor,
       body: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children:[
-                        if (isWritingMode.value)
-                          Container(
-                            height: 100,
-                            padding: EdgeInsets.all(diagonalSize * paddingFactor),
-                             child: Padding(
-                                      padding: EdgeInsets.all(diagonalSize * paddingFactor),
-                                      child: TextField(
-                                        focusNode: focusNode, // Assign the FocusNode to TextField
-                                        enabled: isWritingMode.value, // Enable TextField based on isWritingMode
-                                        controller: descriptionController,
-                                        decoration: const InputDecoration(
-                                          border: InputBorder.none,
-                                          hintText: 'Type something...',
-                                        ),
-                                        maxLines: null,
-                                        expands: true,
-                                        onChanged: (text) {
-                                          textValue.value = text; // Update the text value
-                                        },
-                                      ),
-                                ),
-                           ),
+        child: Padding(
+          padding: EdgeInsets.all(diagonalSize * paddingFactor),
+          child: Column(
+            children: [
+              // _CustomAppBar(
+              //   animationController: animationController,
+              //   //diagonalSize: diagonalSize, themeData: themeData,
+              // ),
+              Row(
+                // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: _CustomAppBar(
+                      animationController: animationController,
+                      //diagonalSize: diagonalSize, themeData: themeData,
+                    ),
+                  ),
+                  InkWell(
+                      onTap: () {
+                        isDrawingMode.value = false;
+                      },
+                      child: Text(
+                        AppStrings.done,
+                        style: themeData.textTheme.headline5,
+                      )),
+                ],
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: Column(
+                    children: [
+                      if (isWritingMode.value)
+                        IntrinsicHeight(
+                          child: TextField(
+                            focusNode: focusNode,
+                            // Assign the FocusNode to TextField
+                            enabled: isWritingMode.value,
+                            // Enable TextField based on isWritingMode
+                            controller: descriptionController,
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                            ),
+                            maxLines: null,
+                            expands: true,
+                            onChanged: (text) {
+                              textValue.value = text; // Update the text value
+                            },
+                          ),
+                        ),
 
-                        if (!isWritingMode.value && textValue.value.isNotEmpty)
+                      if (!isWritingMode.value && textValue.value.isNotEmpty)
                         Container(
-                            // Adjust height as needed
-                            padding: EdgeInsets.all(diagonalSize * paddingFactor),
+                          // Adjust height as needed
+                          padding: EdgeInsets.all(diagonalSize * paddingFactor),
+                          child: Align(
+                            alignment: Alignment.topLeft,
                             child: Text(
                               textValue.value,
-                               // Adjust style as needed
+                              // Adjust style as needed
                             ),
                           ),
-
-
-                        SizedBox(height: 10,),
-
-
-                        if(isDrawingMode.value && textValue.value.isNotEmpty)
-                        LayoutBuilder(
-                          builder: (BuildContext context, BoxConstraints constraints) {
-                          return DrawingCanvas(
-                            width: MediaQuery.of(context).size.width,
-                            height: MediaQuery.of(context).size.height,
-                            drawingMode: drawingMode,
-                            selectedColor: selectedColor,
-                            strokeSize: strokeSize,
-                            eraserSize: eraserSize,
-                            sideBarController: animationController,
-                            currentSketch: currentSketch,
-                            allSketches: allSketches,
-                            canvasGlobalKey: canvasGlobalKey,
-                            filled: filled,
-                            polygonSides: polygonSides,
-                            backgroundImage: backgroundImage,
-                          );}
                         ),
-                        // Positioned(
-                        //   top: kToolbarHeight + 10,
-                        //   // left: -5,
-                        //   child: SlideTransition(
-                        //     position: Tween<Offset>(
-                        //       begin: const Offset(-1, 0),
-                        //       end: Offset.zero,
-                        //     ).animate(animationController),
-                        //     child: CanvasSideBar(
-                        //       drawingMode: drawingMode,
-                        //       selectedColor: selectedColor,
-                        //       strokeSize: strokeSize,
-                        //       eraserSize: eraserSize,
-                        //       currentSketch: currentSketch,
-                        //       allSketches: allSketches,
-                        //       canvasGlobalKey: canvasGlobalKey,
-                        //       filled: filled,
-                        //       polygonSides: polygonSides,
-                        //       backgroundImage: backgroundImage,
-                        //     ),
-                        //   ),
-                        // ),
-                        // _CustomAppBar(animationController: animationController),
-              ],
-            ),
-          ),
 
-        ),
-      bottomNavigationBar:
-      Padding(
-        padding: EdgeInsets.only(bottom: diagonalSize * 0.01),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(left: diagonalSize * 0.1),
-                child: InkWell(
-                  onTap: () async {
-                    isDrawingMode.value = !isDrawingMode.value;
-                    isWritingMode.value = false;
-                    // Set drawing bytes if needed
-                  },
-                  child: SvgPicture.string(
-                    isDrawingMode.value ? selectedSvgPaint : SvgPaint,
-                    width: diagonalSize * 0.03,
-                    height: diagonalSize * 0.03,
+                      SizedBox(
+                        height: 10,
+                      ),
+
+                      // if(isDrawingMode.value || textValue.value.isNotEmpty)
+                      LayoutBuilder(builder:
+                          (BuildContext context, BoxConstraints constraints) {
+                        return DrawingCanvas(
+                          width: MediaQuery.of(context).size.width,
+                          height: MediaQuery.of(context).size.height,
+                          drawingMode: drawingMode,
+                          selectedColor: selectedColor,
+                          strokeSize: strokeSize,
+                          eraserSize: eraserSize,
+                          sideBarController: animationController,
+                          currentSketch: currentSketch,
+                          allSketches: allSketches,
+                          canvasGlobalKey: canvasGlobalKey,
+                          filled: filled,
+                          polygonSides: polygonSides,
+                          backgroundImage: backgroundImage,
+                          isDrawingMode: isDrawingMode,
+                        );
+                      }),
+                    ],
                   ),
                 ),
               ),
-            ),
-            Expanded(
-              child: InkWell(
-                onTap: () async {
-                  isDrawingMode.value = false;
-                  isWritingMode.value = !isWritingMode.value;
-                  if (isWritingMode.value) {
-                    focusNode.requestFocus();
-                  }
-                  // Set drawing bytes if needed
-                },
-                child: SvgPicture.string(
-                  isWritingMode.value ? selectedSvgAddNote : svgAddNote,
-                  width: diagonalSize * 0.03,
-                  height: diagonalSize * 0.03,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(right: diagonalSize * 0.1),
-                child: InkWell(
-                  onTap: () {
-                    // Implement upload functionality
-                  },
-                  child: SvgPicture.string(
-                    SvgUpload,
-                    width: diagonalSize * 0.03,
-                    height: diagonalSize * 0.03,
+              if (isDrawingMode.value)
+                SizedBox(
+                  width: screenWidth,
+                  child: CanvasSideBar(
+                    drawingMode: drawingMode,
+                    selectedColor: selectedColor,
+                    strokeSize: strokeSize,
+                    eraserSize: eraserSize,
+                    currentSketch: currentSketch,
+                    allSketches: allSketches,
+                    canvasGlobalKey: canvasGlobalKey,
+                    filled: filled,
+                    polygonSides: polygonSides,
+                    backgroundImage: backgroundImage,
                   ),
                 ),
-              ),
-            ),
-          ],
+              // SlideTransition(
+              //   position: Tween<Offset>(
+              //     begin: const Offset(-1, 0),
+              //     end: Offset.zero,
+              //   ).animate(animationController),
+              //   child: CanvasSideBar(
+              //     drawingMode: drawingMode,
+              //     selectedColor: selectedColor,
+              //     strokeSize: strokeSize,
+              //     eraserSize: eraserSize,
+              //     currentSketch: currentSketch,
+              //     allSketches: allSketches,
+              //     canvasGlobalKey: canvasGlobalKey,
+              //     filled: filled,
+              //     polygonSides: polygonSides,
+              //     backgroundImage: backgroundImage,
+              //   ),
+              // ),
+            ],
+          ),
         ),
       ),
-
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.only(bottom: diagonalSize * 0.01),
+        child: (!isDrawingMode.value)
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: Padding(
+                      padding: EdgeInsets.only(left: diagonalSize * 0.1),
+                      child: InkWell(
+                        onTap: () async {
+                          isDrawingMode.value = !isDrawingMode.value;
+                          isWritingMode.value = false;
+                          // Set drawing bytes if needed
+                        },
+                        child: SvgPicture.string(
+                          isDrawingMode.value ? selectedSvgPaint : SvgPaint,
+                          width: diagonalSize * 0.03,
+                          height: diagonalSize * 0.03,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Flexible(
+                    child: InkWell(
+                      onTap: () async {
+                        isDrawingMode.value = false;
+                        isWritingMode.value = !isWritingMode.value;
+                        if (isWritingMode.value) {
+                          focusNode.requestFocus();
+                        }
+                        // Set drawing bytes if needed
+                      },
+                      child: SvgPicture.string(
+                        isWritingMode.value ? selectedSvgAddNote : svgAddNote,
+                        width: diagonalSize * 0.03,
+                        height: diagonalSize * 0.03,
+                      ),
+                    ),
+                  ),
+                  Flexible(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: diagonalSize * 0.1),
+                      child: InkWell(
+                        onTap: () {
+                          // Implement upload functionality
+                        },
+                        child: SvgPicture.string(
+                          SvgUpload,
+                          width: diagonalSize * 0.03,
+                          height: diagonalSize * 0.03,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : const SizedBox.shrink(),
+      ),
     );
   }
-   }
+}
+
 class _CustomAppBar extends StatelessWidget {
   final AnimationController animationController;
 
@@ -234,18 +275,52 @@ class _CustomAppBar extends StatelessWidget {
                   animationController.reverse();
                 }
               },
-              icon: const Icon(Icons.menu),
-            ),
-            const Text(
-              'Let\'s Draw',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 19,
-              ),
+              icon: const Icon(Icons.add_circle_outline),
             ),
             const SizedBox.shrink(),
           ],
         ),
       ),
     );
-  }}
+  }
+}
+
+// class _CustomAppBar extends StatelessWidget {
+//   final double diagonalSize;
+//   final AnimationController animationController;
+//   final themeData;
+//
+//   const _CustomAppBar({Key? key, required this.animationController, required this.diagonalSize,required this.themeData})
+//       : super(key: key);
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return SizedBox(
+//       height: kToolbarHeight,
+//       width: double.maxFinite,
+//
+//         child: Row(
+//           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//           children: [
+//               Expanded(
+//                 child: Align(
+//                   alignment: Alignment.topLeft,
+//                   child: IconButton(
+//                     onPressed: () {
+//                       if (animationController.value == 0) {
+//                         animationController.forward();
+//                       } else {
+//                         animationController.reverse();
+//                       }
+//                     },
+//                     icon: const Icon(Icons.menu),
+//                   ),
+//                 ),
+//               ),
+//              Text(AppStrings.done,style: themeData.textTheme.headline5 ,),
+//             const SizedBox.shrink(),
+//           ],
+//         ),
+//
+//     );
+//   }}

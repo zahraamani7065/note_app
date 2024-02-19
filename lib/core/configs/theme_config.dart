@@ -1,3 +1,5 @@
+
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -5,13 +7,14 @@ import 'package:flutter/material.dart';
 class ThemeConfig {
   final primaryColor = Color(0xFFE3AE08);
   final Color primaryTextColor = Colors.black;
-  final Color secondaryTextColor = Colors.white;
+  final Color secondaryTextColor = Color(0xFFE3AE08);
   final Color backgroundColor = Colors.white;
   final Color itemBackgroundColor=Color(0xFFf2f2f2);
 
-  // final Color onPrimary;
-  ThemeData getTheme() {
 
+  // final Color onPrimary;
+  ThemeData getTheme(BuildContext context) {
+    final diagonalSize = sqrt(pow(MediaQuery.of(context).size.width, 2) + pow(MediaQuery.of(context).size.height, 2));
     return ThemeData(
 
       colorScheme: ColorScheme(
@@ -40,9 +43,13 @@ class ThemeConfig {
             ),
             bodyText2: TextStyle(
               color: primaryTextColor,
-              fontSize: 16,
               fontWeight: FontWeight.normal,
             ),
+          headline5: TextStyle(
+            color: secondaryTextColor,
+            fontWeight: FontWeight.normal,
+            fontSize: diagonalSize* 0.02
+          ),
            ),
 
      );
