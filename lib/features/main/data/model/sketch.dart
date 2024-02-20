@@ -1,10 +1,8 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import '../../../main/data/model/drawing_mode.dart';
+import '../../domain/entity/sketch_entity.dart';
 
-import 'drawing_mode.dart';
-
-class Sketch {
+class Sketch extends SketchEntity {
   final List<Offset> points;
   final Color color;
   final double size;
@@ -19,20 +17,20 @@ class Sketch {
     this.filled = true,
     this.sides = 3,
     required this.size,
-  });
+  }) : super(points: points, size: size);
 
   factory Sketch.fromDrawingMode(
-      Sketch sketch,
-      DrawingMode drawingMode,
-      bool filled,
-      ) {
+    Sketch sketch,
+    DrawingMode drawingMode,
+    bool filled,
+  ) {
     return Sketch(
       points: sketch.points,
       color: sketch.color,
       size: sketch.size,
       filled: drawingMode == DrawingMode.line ||
-          drawingMode == DrawingMode.pencil ||
-          drawingMode == DrawingMode.eraser
+              drawingMode == DrawingMode.pencil ||
+              drawingMode == DrawingMode.eraser
           ? false
           : filled,
       sides: sketch.sides,
@@ -56,21 +54,44 @@ class Sketch {
     );
   }
 
+  // Map<String, dynamic> toJson() {
+  //   List<Map> pointsMap = points.map((e) => {'dx': e.dx, 'dy': e.dy}).toList();
+  //   return {
+  //     'points': pointsMap,
+  //     'color': color.toHex(),
+  //     'size': size,
+  //     'filled': filled,
+  //     'type': type.toRegularString(),
+  //     'sides': sides,
+  //   };
+  // }
+  //
+  // factory Sketch.fromJson(Map<String, dynamic> json) {
+  //   List<Offset> points =
+  //       (json['points'] as List).map((e) => Offset(e['dx'], e['dy'])).toList();
+  //   return Sketch(
+  //     points: points,
+  //     color: (json['color'] as String).toColor(),
+  //     size: json['size'],
+  //     filled: json['filled'],
+  //     type: (json['type'] as String).toSketchTypeEnum(),
+  //     sides: json['sides'],
+  //   );
+  // }
   Map<String, dynamic> toJson() {
-    List<Map> pointsMap = points.map((e) => {'dx': e.dx, 'dy': e.dy}).toList();
+    List<Map<String, double>> pointsList = points.map((offset) => {'dx': offset.dx, 'dy': offset.dy}).toList();
     return {
-      'points': pointsMap,
+      'points': pointsList,
       'color': color.toHex(),
       'size': size,
-      'filled': filled,
       'type': type.toRegularString(),
+      'filled': filled,
       'sides': sides,
     };
   }
 
   factory Sketch.fromJson(Map<String, dynamic> json) {
-    List<Offset> points =
-    (json['points'] as List).map((e) => Offset(e['dx'], e['dy'])).toList();
+    List<Offset> points = (json['points'] as List).map<Offset>((point) => Offset(point['dx'], point['dy'])).toList();
     return Sketch(
       points: points,
       color: (json['color'] as String).toColor(),
@@ -78,6 +99,18 @@ class Sketch {
       filled: json['filled'],
       type: (json['type'] as String).toSketchTypeEnum(),
       sides: json['sides'],
+    );
+  }
+
+
+  factory Sketch.fromEntity(SketchEntity sketchEntity) {
+    return Sketch(
+        points: sketchEntity.points,
+        size: sketchEntity.size,
+        color: sketchEntity.color,
+        filled: sketchEntity.filled,
+        type: sketchEntity.type,
+
     );
   }
 }

@@ -1,14 +1,19 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:note_app/core/Services/locator.dart';
 import 'package:note_app/core/strings/string.dart';
 import 'package:note_app/core/utils/images/svg_logos.dart';
-import 'package:signature/signature.dart';
+import 'package:note_app/features/main/domain/entity/data_entity.dart';
+import 'package:note_app/features/main/domain/entity/sketch_entity.dart';
+import 'package:note_app/features/main/domain/usecase/add_sketch_useCase.dart';
+import 'package:note_app/features/main/presentation/screens/home.dart';
 
 import '../../data/model/drawing_mode.dart';
-import '../../data/model/sketch.dart';
+import '../bloc/note_list_bloc.dart';
 import '../widgets/cannvas_side_bar.dart';
 import '../widgets/drawing_canvas.dart';
 
@@ -25,23 +30,21 @@ class AddNoteScreen extends HookWidget {
     final polygonSides = useState<int>(3);
     final backgroundImage = useState<Image?>(null);
     final canvasGlobalKey = GlobalKey();
-    final containerHeight = useState<double?>(null);
     final textValue = useState<String>('');
+    String? name;
     final focusNode = useFocusNode();
-    ValueNotifier<Sketch?> currentSketch = useState(null);
-    ValueNotifier<List<Sketch>> allSketches = useState([]);
+    AddSketchUseCase addSketchUseCase =
+        AddSketchUseCase(sketchRepository: locator());
+    ValueNotifier<SketchEntity?> currentSketch = useState(null);
+    ValueNotifier<List<SketchEntity>> allSketches = useState([]);
     final animationController = useAnimationController(
       duration: const Duration(milliseconds: 150),
       initialValue: 1,
     );
+
     final isDrawingMode = useState<bool>(false);
     final isWritingMode = useState<bool>(true);
     final descriptionController = useTextEditingController();
-    final ctrlSing = useMemoized(() => SignatureController(
-          penStrokeWidth: 5,
-          penColor: Colors.red,
-          exportBackgroundColor: Colors.transparent,
-        ));
 
     final themeData = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
@@ -58,136 +61,175 @@ class AddNoteScreen extends HookWidget {
     return Scaffold(
       backgroundColor: themeData.backgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(diagonalSize * paddingFactor),
-          child: Column(
-            children: [
-              // _CustomAppBar(
-              //   animationController: animationController,
-              //   //diagonalSize: diagonalSize, themeData: themeData,
-              // ),
-              Row(
-                // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: _CustomAppBar(
-                      animationController: animationController,
-                      //diagonalSize: diagonalSize, themeData: themeData,
-                    ),
-                  ),
-                  InkWell(
-                      onTap: () {
-                        isDrawingMode.value = false;
-                      },
-                      child: Text(
-                        AppStrings.done,
-                        style: themeData.textTheme.headline5,
-                      )),
-                ],
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
+          child: BlocProvider(
+              create: (context) => locator<NoteListBloc>(),
+              child: BlocBuilder<NoteListBloc, NoteListState>(
+                  builder: (blocContext, state) {
+                return Padding(
+                  padding: EdgeInsets.all(diagonalSize * paddingFactor),
                   child: Column(
                     children: [
-                      if (isWritingMode.value)
-                        IntrinsicHeight(
-                          child: TextField(
-                            focusNode: focusNode,
-                            // Assign the FocusNode to TextField
-                            enabled: isWritingMode.value,
-                            // Enable TextField based on isWritingMode
-                            controller: descriptionController,
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                            ),
-                            maxLines: null,
-                            expands: true,
-                            onChanged: (text) {
-                              textValue.value = text; // Update the text value
-                            },
-                          ),
-                        ),
-
-                      if (!isWritingMode.value && textValue.value.isNotEmpty)
-                        Container(
-                          // Adjust height as needed
-                          padding: EdgeInsets.all(diagonalSize * paddingFactor),
-                          child: Align(
-                            alignment: Alignment.topLeft,
-                            child: Text(
-                              textValue.value,
-                              // Adjust style as needed
+                      Row(
+                        // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: _CustomAppBar(
+                              animationController: animationController,
                             ),
                           ),
-                        ),
-
-                      SizedBox(
-                        height: 10,
+                          InkWell(
+                              onTap: () async {
+                                if (!isDrawingMode.value) {
+                                  // Show dialog to get the name
+                                  name = await showDialog(
+                                    context: blocContext,
+                                    builder: (context) => AlertDialog(
+                                      title: Text('Enter a name'),
+                                      content: TextField(
+                                        onChanged: (value) => name = value,
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () {
+                                            final data = DataEntity(
+                                                sketchEntity: allSketches.value,
+                                                name: name.toString(),
+                                                text: textValue.value,
+                                                dateTime: DateTime.now(),
+                                                drawingBytes: [],
+                                                imagePath: "",
+                                                videoPath: "");
+                                            BlocProvider.of<NoteListBloc>(
+                                                    blocContext)
+                                                .add(SaveDataEvent(data));
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        HomeScreen()),
+                                              );
+                                          },
+                                          child: Text('OK'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                } else {
+                                  isDrawingMode.value=false;
+                                }
+                              },
+                              child: Text(
+                                AppStrings.done,
+                                style: themeData.textTheme.headline5,
+                              )),
+                        ],
                       ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          child: Column(
+                            children: [
+                              if (isWritingMode.value)
+                                IntrinsicHeight(
+                                  child: TextField(
+                                    focusNode: focusNode,
+                                    // Assign the FocusNode to TextField
+                                    enabled: isWritingMode.value,
+                                    // Enable TextField based on isWritingMode
+                                    controller: descriptionController,
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                    ),
+                                    maxLines: null,
+                                    expands: true,
+                                    onChanged: (text) {
+                                      textValue.value =
+                                          text; // Update the text value
+                                    },
+                                  ),
+                                ),
 
-                      // if(isDrawingMode.value || textValue.value.isNotEmpty)
-                      LayoutBuilder(builder:
-                          (BuildContext context, BoxConstraints constraints) {
-                        return DrawingCanvas(
-                          width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.height,
-                          drawingMode: drawingMode,
-                          selectedColor: selectedColor,
-                          strokeSize: strokeSize,
-                          eraserSize: eraserSize,
-                          sideBarController: animationController,
-                          currentSketch: currentSketch,
-                          allSketches: allSketches,
-                          canvasGlobalKey: canvasGlobalKey,
-                          filled: filled,
-                          polygonSides: polygonSides,
-                          backgroundImage: backgroundImage,
-                          isDrawingMode: isDrawingMode,
-                        );
-                      }),
+                              if (!isWritingMode.value &&
+                                  textValue.value.isNotEmpty)
+                                Container(
+                                  // Adjust height as needed
+                                  padding: EdgeInsets.all(
+                                      diagonalSize * paddingFactor),
+                                  child: Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Text(
+                                      textValue.value,
+                                      // Adjust style as needed
+                                    ),
+                                  ),
+                                ),
+
+                              SizedBox(
+                                height: 10,
+                              ),
+
+                              // if(isDrawingMode.value || textValue.value.isNotEmpty)
+                              LayoutBuilder(builder: (BuildContext context,
+                                  BoxConstraints constraints) {
+                                return DrawingCanvas(
+                                  width: MediaQuery.of(context).size.width,
+                                  height: MediaQuery.of(context).size.height,
+                                  drawingMode: drawingMode,
+                                  selectedColor: selectedColor,
+                                  strokeSize: strokeSize,
+                                  eraserSize: eraserSize,
+                                  sideBarController: animationController,
+                                  currentSketch: currentSketch,
+                                  allSketches: allSketches,
+                                  canvasGlobalKey: canvasGlobalKey,
+                                  filled: filled,
+                                  polygonSides: polygonSides,
+                                  backgroundImage: backgroundImage,
+                                  isDrawingMode: isDrawingMode,
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (isDrawingMode.value)
+                        SizedBox(
+                          width: screenWidth,
+                          child: CanvasSideBar(
+                            drawingMode: drawingMode,
+                            selectedColor: selectedColor,
+                            strokeSize: strokeSize,
+                            eraserSize: eraserSize,
+                            currentSketch: currentSketch,
+                            allSketches: allSketches,
+                            canvasGlobalKey: canvasGlobalKey,
+                            filled: filled,
+                            polygonSides: polygonSides,
+                            backgroundImage: backgroundImage,
+                          ),
+                        ),
+                      // SlideTransition(
+                      //   position: Tween<Offset>(
+                      //     begin: const Offset(-1, 0),
+                      //     end: Offset.zero,
+                      //   ).animate(animationController),
+                      //   child: CanvasSideBar(
+                      //     drawingMode: drawingMode,
+                      //     selectedColor: selectedColor,
+                      //     strokeSize: strokeSize,
+                      //     eraserSize: eraserSize,
+                      //     currentSketch: currentSketch,
+                      //     allSketches: allSketches,
+                      //     canvasGlobalKey: canvasGlobalKey,
+                      //     filled: filled,
+                      //     polygonSides: polygonSides,
+                      //     backgroundImage: backgroundImage,
+                      //   ),
+                      // ),
                     ],
                   ),
-                ),
-              ),
-              if (isDrawingMode.value)
-                SizedBox(
-                  width: screenWidth,
-                  child: CanvasSideBar(
-                    drawingMode: drawingMode,
-                    selectedColor: selectedColor,
-                    strokeSize: strokeSize,
-                    eraserSize: eraserSize,
-                    currentSketch: currentSketch,
-                    allSketches: allSketches,
-                    canvasGlobalKey: canvasGlobalKey,
-                    filled: filled,
-                    polygonSides: polygonSides,
-                    backgroundImage: backgroundImage,
-                  ),
-                ),
-              // SlideTransition(
-              //   position: Tween<Offset>(
-              //     begin: const Offset(-1, 0),
-              //     end: Offset.zero,
-              //   ).animate(animationController),
-              //   child: CanvasSideBar(
-              //     drawingMode: drawingMode,
-              //     selectedColor: selectedColor,
-              //     strokeSize: strokeSize,
-              //     eraserSize: eraserSize,
-              //     currentSketch: currentSketch,
-              //     allSketches: allSketches,
-              //     canvasGlobalKey: canvasGlobalKey,
-              //     filled: filled,
-              //     polygonSides: polygonSides,
-              //     backgroundImage: backgroundImage,
-              //   ),
-              // ),
-            ],
-          ),
-        ),
-      ),
+                );
+              }))),
       bottomNavigationBar: Padding(
         padding: EdgeInsets.only(bottom: diagonalSize * 0.01),
         child: (!isDrawingMode.value)

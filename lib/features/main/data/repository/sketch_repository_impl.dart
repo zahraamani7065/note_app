@@ -1,20 +1,38 @@
-import 'package:note_app/features/main/domain/entity/sketch_entity.dart';
-
+import 'package:hive/hive.dart';
+import '../../domain/entity/sketch_entity.dart';
 import '../../domain/repository/drawing_repository.dart';
+import '../data_source/local/drawing_data.dart';
+import '../../../../main.dart';
 
-class DrawingRepositoryImpl implements DrawingRepository {
+class SketchRepositoryImpl implements SketchRepository {
+  final box = Hive.box<DrawingData>(drawingAdapter);
 
-
-  DrawingRepositoryImpl();
 
   @override
-  Future<void> addSketch(SketchEntity sketchEntity) async {
-    // Implement adding sketch to local data source
+  Future<void> addSketch(List<SketchEntity> sketches) async {
+    final dataList = sketches.map((sketch) => _convertToDrawingData(sketch)).toList();
+    for (var data in dataList) {
+      await box.add(data);
+    }
+
+  }
+
+  DrawingData _convertToDrawingData(SketchEntity sketch) {
+    return DrawingData(
+      points: sketch.points,
+      color: sketch.color,
+      size: sketch.size,
+      filled: sketch.filled,
+      type: sketch.type,
+      sides: sketch.sides,
+    );
   }
 
   @override
   Future<void> undoSketch() async {
     // Implement undoing sketch in local data source
+
+
   }
 
   @override

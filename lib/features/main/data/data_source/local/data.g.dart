@@ -8,7 +8,7 @@ part of 'data.dart';
 
 class NoteAdapter extends TypeAdapter<Data> {
   @override
-  final int typeId = 0;
+  final int typeId = 1;
 
   @override
   Data read(BinaryReader reader) {
@@ -23,13 +23,13 @@ class NoteAdapter extends TypeAdapter<Data> {
       fields[4] as String,
       fields[2] as String,
       fields[5] as String,
-    );
+    )..drawingDataList = (fields[6] as List).cast<DrawingData>();
   }
 
   @override
   void write(BinaryWriter writer, Data obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -41,7 +41,9 @@ class NoteAdapter extends TypeAdapter<Data> {
       ..writeByte(4)
       ..write(obj.imagePath)
       ..writeByte(5)
-      ..write(obj.videoPath);
+      ..write(obj.videoPath)
+      ..writeByte(6)
+      ..write(obj.drawingDataList);
   }
 
   @override

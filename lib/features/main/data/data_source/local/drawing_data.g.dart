@@ -8,11 +8,22 @@ part of 'drawing_data.dart';
 
 class DrawingAdapter extends TypeAdapter<DrawingData> {
   @override
-  final int typeId = 1;
+  final int typeId = 2;
 
   @override
   DrawingData read(BinaryReader reader) {
-    return DrawingData();
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return DrawingData(
+      points: (fields[0] as List).cast<Offset>(),
+      color: fields[1] as Color,
+      size: fields[2] as double,
+      type: fields[3] as SketchType,
+      filled: fields[4] as bool,
+      sides: fields[5] as int,
+    );
   }
 
   @override

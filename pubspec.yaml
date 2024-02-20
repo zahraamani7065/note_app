@@ -51,6 +51,7 @@ dependencies:
   file_saver: ^0.2.9
   image_picker: ^1.0.7
   file_picker: ^6.1.1
+  intl: ^0.17.0
 
 dev_dependencies:
   flutter_test:

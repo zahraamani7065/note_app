@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:note_app/core/Services/locator.dart';
 import 'package:note_app/core/strings/string.dart';
 
@@ -48,8 +49,8 @@ class _HomeScreenState extends State<HomeScreen> {
               builder: (context, state) {
             if (state.getAllDataStatus is GetAllDataLoading) {
               BlocProvider.of<NoteListBloc>(context).add(GetAllDataEvent());
-              print("loading data");}
-            else if (state.getAllDataStatus is GetAllDataCompleted) {
+              print("loading data");
+            } else if (state.getAllDataStatus is GetAllDataCompleted) {
               print("get all data complated");
               GetAllDataCompleted getAllCityCompleted =
                   state.getAllDataStatus as GetAllDataCompleted;
@@ -59,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 return
                     // Text("emoty...............");
                     Padding(
-                        padding: EdgeInsets.all( diagonalSize*paddingFactor),
+                        padding: EdgeInsets.all(diagonalSize * paddingFactor),
                         child: Column(
                           children: [
                             Expanded(
@@ -69,22 +70,22 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             Align(
-                              alignment: Alignment.bottomRight,
-                              child:InkWell(
-                                onTap:() {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) =>AddNoteScreen()),
-                                  );
-
-                                },
-                                child: SvgPicture.string(svgAddNote,
-                                width: diagonalSize*0.03,
-                                height: diagonalSize*0.03,
-                                ),
-                              )
-
-                            )
+                                alignment: Alignment.bottomRight,
+                                child: InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              AddNoteScreen()),
+                                    );
+                                  },
+                                  child: SvgPicture.string(
+                                    svgAddNote,
+                                    width: diagonalSize * 0.03,
+                                    height: diagonalSize * 0.03,
+                                  ),
+                                )),
                           ],
                         ));
               }
@@ -94,40 +95,91 @@ class _HomeScreenState extends State<HomeScreen> {
                   right: diagonalSize * paddingFactor,
                   left: diagonalSize * paddingFactor,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: Stack(
                   children: [
-                    SizedBox(
-                      height: diagonalSize * paddingFactor,
-                    ),
-                    Text(
-                      AppStrings.notes,
-                      style: themeData.textTheme.headline6,
-                    ),
-                    SizedBox(
-                      height: diagonalSize * paddingFactor,
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                        color: themeData.scaffoldBackgroundColor,
+                    SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            height: diagonalSize * paddingFactor,
+                          ),
+                          Text(
+                            AppStrings.notes,
+                            style: themeData.textTheme.headline6,
+                          ),
+                          SizedBox(
+                            height: diagonalSize * paddingFactor,
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius:
+                                  BorderRadius.circular(diagonalSize * 0.03),
+                              color: themeData.scaffoldBackgroundColor,
+                            ),
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              scrollDirection: Axis.vertical,
+                              itemCount: data.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final DataEntity task = data[index];
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    right: diagonalSize * paddingFactor,
+                                    left: diagonalSize * paddingFactor,
+                                    top: diagonalSize * paddingFactor,
+                                    bottom: diagonalSize * paddingFactor,
+                                  ),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+
+                                      children: [
+
+                                        Text(task.name),
+                                        SizedBox(height: diagonalSize*0.005,),
+                                        Text(DateFormat('yyyy-MM-dd HH:mm').format(task.dateTime),style: TextStyle(color: Colors.grey),),
+                                        SizedBox(height: diagonalSize*0.01,),
+
+
+                                        if(index!=data.length-1)
+                                        Divider(
+                                          color: themeData.backgroundColor,
+                                          thickness: 2, // Optional: Set the thickness of the divider
+                                          height: 20, // Optional: Set the height of the divider
+                                        ),
+                                        // Divider(),
+                                      ]),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        scrollDirection: Axis.vertical,
-                        itemCount: 1,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Padding(
-                              padding: EdgeInsets.only(
-                                right: diagonalSize * paddingFactor,
-                                left: diagonalSize * paddingFactor,
-                                top: diagonalSize * paddingFactor,
-                                bottom: diagonalSize * paddingFactor,
-                              ),
-                              child: Column());
-                        },
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: diagonalSize * 0.015,
+                        right: diagonalSize * 0.015,
                       ),
+                      child: Align(
+                          alignment: Alignment.bottomRight,
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => AddNoteScreen()),
+                              );
+                            },
+                            child: SvgPicture.string(
+                              svgAddNote,
+                              width: diagonalSize * 0.03,
+                              height: diagonalSize * 0.03,
+                            ),
+                          )),
                     ),
                   ],
                 ),
@@ -140,5 +192,3 @@ class _HomeScreenState extends State<HomeScreen> {
         )));
   }
 }
-
-

@@ -1,9 +1,7 @@
 import 'dart:async';
-
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'dart:ui';
-
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -14,7 +12,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:note_app/core/utils/images/svg_logos.dart';
-
+import 'package:note_app/features/main/domain/entity/sketch_entity.dart';
 import '../../data/model/drawing_mode.dart';
 import '../../data/model/sketch.dart';
 import 'color_palette.dart';
@@ -24,8 +22,8 @@ class CanvasSideBar extends HookWidget {
   final ValueNotifier<double> strokeSize;
   final ValueNotifier<double> eraserSize;
   final ValueNotifier<DrawingMode> drawingMode;
-  final ValueNotifier<Sketch?> currentSketch;
-  final ValueNotifier<List<Sketch>> allSketches;
+  final ValueNotifier<SketchEntity?> currentSketch;
+  final ValueNotifier<List<SketchEntity>> allSketches;
   final GlobalKey canvasGlobalKey;
   final ValueNotifier<bool> filled;
   final ValueNotifier<int> polygonSides;
@@ -502,8 +500,8 @@ class _UndoRedoStack {
     sketchesNotifier.addListener(_sketchesCountListener);
   }
 
-  final ValueNotifier<List<Sketch>> sketchesNotifier;
-  final ValueNotifier<Sketch?> currentSketchNotifier;
+  final ValueNotifier<List<SketchEntity>> sketchesNotifier;
+  final ValueNotifier<SketchEntity?> currentSketchNotifier;
 
   ///Collection of sketches that can be redone.
   late final List<Sketch> _redoStack = [];

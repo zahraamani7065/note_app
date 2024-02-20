@@ -12,5 +12,7 @@ class SaveDataUseCase implements UseCase <DataState<DataEntity>,DataEntity>{
   @override
   Future<DataState<DataEntity>> call(DataEntity dataEntity) {
     return dataRepository.createOrUpdate(dataEntity);
+
+
   }
 }
