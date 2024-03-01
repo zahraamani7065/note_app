@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -77,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       context,
                                       MaterialPageRoute(
                                           builder: (context) =>
-                                              AddNoteScreen()),
+                                              AddNoteScreen(null)),
                                     );
                                   },
                                   child: SvgPicture.string(
@@ -105,9 +106,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           SizedBox(
                             height: diagonalSize * paddingFactor,
                           ),
-                          Text(
-                            AppStrings.notes,
-                            style: themeData.textTheme.headline6,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children:[ Text(
+                              AppStrings.notes,
+                              style: themeData.textTheme.headline6,
+                            ),
+
+                            IconButton(onPressed: (){
+                              BlocProvider.of<NoteListBloc>(context).add(DeleteAllEvent());
+
+                            }, icon:  Icon(CupertinoIcons.delete),)
+                            ]
                           ),
                           SizedBox(
                             height: diagonalSize * paddingFactor,
@@ -125,6 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               itemCount: data.length,
                               itemBuilder: (BuildContext context, int index) {
                                 final DataEntity task = data[index];
+                                GlobalKey _inkWellKey = GlobalKey();
                                 return Padding(
                                   padding: EdgeInsets.only(
                                     right: diagonalSize * paddingFactor,
@@ -132,26 +143,63 @@ class _HomeScreenState extends State<HomeScreen> {
                                     top: diagonalSize * paddingFactor,
                                     bottom: diagonalSize * paddingFactor,
                                   ),
-                                  child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-
-                                      children: [
-
-                                        Text(task.name),
-                                        SizedBox(height: diagonalSize*0.005,),
-                                        Text(DateFormat('yyyy-MM-dd HH:mm').format(task.dateTime),style: TextStyle(color: Colors.grey),),
-                                        SizedBox(height: diagonalSize*0.01,),
-
-
-                                        if(index!=data.length-1)
-                                        Divider(
-                                          color: themeData.backgroundColor,
-                                          thickness: 2, // Optional: Set the thickness of the divider
-                                          height: 20, // Optional: Set the height of the divider
+                                  child: InkWell(
+                                    key: _inkWellKey,
+                                    onLongPress: () {
+                                      final RenderObject? renderObject =
+                                          _inkWellKey.currentContext
+                                              ?.findRenderObject();
+                                      if (renderObject is RenderBox) {
+                                        final position = renderObject
+                                            .localToGlobal(Offset.zero);
+                                        if (position != null) {
+                                          _showContextMenu(
+                                              context, position, index);
+                                        }
+                                      }
+                                    },
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              AddNoteScreen(task),
                                         ),
-                                        // Divider(),
-                                      ]),
+                                      );
+                                    },
+                                    child: SizedBox(
+                                      width: screenWidth,
+                                      child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(task.name),
+                                            SizedBox(
+                                              height: diagonalSize * 0.005,
+                                            ),
+                                            Text(
+                                              DateFormat('yyyy-MM-dd HH:mm')
+                                                  .format(task.dateTime),
+                                              style:
+                                                  TextStyle(color: Colors.grey),
+                                            ),
+                                            SizedBox(
+                                              height: diagonalSize * 0.01,
+                                            ),
+
+                                            if (index != data.length - 1)
+                                              Divider(
+                                                color:
+                                                    themeData.backgroundColor,
+                                                thickness: 2,
+                                                // Optional: Set the thickness of the divider
+                                                height:
+                                                    20, // Optional: Set the height of the divider
+                                              ),
+                                            // Divider(),
+                                          ]),
+                                    ),
+                                  ),
                                 );
                               },
                             ),
@@ -171,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) => AddNoteScreen()),
+                                    builder: (context) => AddNoteScreen(null)),
                               );
                             },
                             child: SvgPicture.string(
@@ -190,5 +238,47 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }),
         )));
+  }
+
+  void _showContextMenu(
+      BuildContext context, Offset position, int index) async {
+    final RenderBox overlay =
+        Overlay.of(context)!.context.findRenderObject() as RenderBox;
+    final relativePosition = RelativeRect.fromRect(
+      Rect.fromPoints(
+        position,
+        position,
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    final result = await showMenu<String>(
+      context: context,
+      position: relativePosition,
+      items: <PopupMenuEntry<String>>[
+        PopupMenuItem<String>(
+          value: 'delete',
+          child: ListTile(
+            leading: Icon(Icons.delete),
+            title: Text(AppStrings.delete),
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'pin',
+          child: ListTile(
+            leading: Icon(Icons.push_pin),
+            title: Text(AppStrings.pin),
+          ),
+        ),
+      ],
+    );
+
+    if (result != null) {
+      if (result == 'delete') {
+        BlocProvider.of<NoteListBloc>(context).add(DeleteEvent(index: index));
+      } else if (result == 'pin') {
+        // Handle pin action
+      }
+    }
   }
 }

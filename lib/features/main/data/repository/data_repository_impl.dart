@@ -13,25 +13,73 @@ class DataRepositoryImpl extends DataRepository {
   @override
   Future<DataState<DataEntity>> createOrUpdate(DataEntity data) async {
     try {
-      Data task = Data.fromDataEntity(data);
-      await box.add(task);
-      print(task);
+      final existingData = await _findExistingData(data);
+      if (existingData != null) {
+        // Get the index of the existing data
+        final index = box.values.toList().indexOf(existingData);
+        if (index != -1) {
+          await box.putAt(index, Data.fromDataEntity(data));
+          print("Data updated: $data");
+        } else {
+          // Handle error: Existing data not found in the box
+        }
+      } else {
+        Data task = Data.fromDataEntity(data);
+        await box.add(task);
+        print("Data added: $data");
+      }
       return DataSuccess(data);
     } on HiveError catch (error) {
       return DataFailed(error.message);
     }
+    // try {
+    //   // box.clear();
+    //   final existingData = await _findExistingData(data);
+    //   if (existingData != null) {
+    //     final key = box.key(existingData);
+    //     await box.put( existingData, Data.fromDataEntity(data));
+    //     print("Data updated: $data");
+    //   } else {
+    //
+    //     Data task = Data.fromDataEntity(data);
+    //     await box.add(task);
+    //     print("Data added: $data");
+    //   }
+    //   return DataSuccess(data);
+    // } on HiveError catch (error) {
+    //   return DataFailed(error.message);
+    // }
+  }
+
+  Future<Data?> _findExistingData(DataEntity newData) async {
+    for (var data in box.values) {
+      if (data.name == newData.name ) {
+        return data;
+      }
+    }
+    return null;
+  }
+
+
+  @override
+  Future<DataState> delete(int index) async {
+    try {
+      await box.deleteAt(index);
+      return DataSuccess(box.values);
+    } catch (error) {
+      return DataFailed(error.toString());
+
+    }
   }
 
   @override
-  Future<void> delete(int index) {
-    // TODO: implement delete
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> deleteAll() {
-    // TODO: implement deleteAll
-    throw UnimplementedError();
+  Future<DataState> deleteAll() async{
+    try {
+      await box.clear();
+      return DataSuccess(box.values);
+    } catch (error) {
+      return DataFailed(error.toString());
+    }
   }
 
   @override

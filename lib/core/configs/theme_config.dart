@@ -22,9 +22,9 @@ class ThemeConfig {
         onPrimary: primaryTextColor,
         secondary: primaryTextColor,
         onSecondary: primaryTextColor,
-        surface: primaryTextColor,
+        surface: itemBackgroundColor,
         onSurface: primaryTextColor,
-        background: primaryTextColor,
+        background: backgroundColor,
         onBackground: primaryTextColor,
         error: primaryTextColor,
         onError: primaryTextColor,
@@ -36,9 +36,10 @@ class ThemeConfig {
         brightness: Brightness.light,
         backgroundColor: itemBackgroundColor,
 
+
         textTheme: TextTheme(
             headline6: TextStyle(
-              color: primaryTextColor,
+              color: secondaryTextColor,
               fontWeight: FontWeight.bold,
             ),
             bodyText2: TextStyle(
@@ -48,7 +49,7 @@ class ThemeConfig {
           headline5: TextStyle(
             color: secondaryTextColor,
             fontWeight: FontWeight.normal,
-            fontSize: diagonalSize* 0.02
+            fontSize: diagonalSize* 0.017
           ),
            ),
 

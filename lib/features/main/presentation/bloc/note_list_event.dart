@@ -12,3 +12,11 @@ class SaveDataEvent extends NoteListEvent{
   SaveDataEvent(this.dataEntity);
 
 }
+class DeleteAllEvent extends NoteListEvent{}
+class DeleteEvent extends NoteListEvent{
+  final int index;
+
+  DeleteEvent({required this.index});
+
+
+}
