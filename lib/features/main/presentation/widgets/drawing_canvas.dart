@@ -18,11 +18,12 @@ class DrawingCanvas extends HookWidget {
   final ValueNotifier<DrawingMode> drawingMode;
   final AnimationController sideBarController;
   final ValueNotifier<SketchEntity?> currentSketch;
-  final ValueNotifier<List<SketchEntity>> allSketches;
+  final ValueNotifier<List<List<SketchEntity>>> allSketches;
   final GlobalKey canvasGlobalKey;
   final ValueNotifier<int> polygonSides;
   final ValueNotifier<bool> filled;
   final ValueNotifier<bool> isDrawingMode;
+  final Key? key;
 
   DrawingCanvas({
     required this.isDrawingMode,
@@ -39,18 +40,19 @@ class DrawingCanvas extends HookWidget {
     required this.canvasGlobalKey,
     required this.polygonSides,
     required this.filled,
+    required this.key,
+
+
   });
 
   @override
   Widget build(BuildContext context) {
-    final themeData = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final paddingFactor = 0.01;
     final diagonalSize = sqrt(pow(screenWidth, 2) + pow(screenHeight, 2));
 
     return MouseRegion(
-
               cursor: SystemMouseCursors.precise,
               child: Stack(
                 children: [
@@ -106,8 +108,13 @@ class DrawingCanvas extends HookWidget {
 
   void onPointerUp(PointerUpEvent details,BuildContext context) {
     final themeData = Theme.of(context);
-    allSketches.value = List<SketchEntity>.from(allSketches.value)
-      ..add(currentSketch.value!);
+
+    final List<SketchEntity> currentSketchList = currentSketch.value != null
+        ? [currentSketch.value!]
+        : [];
+
+    allSketches.value = [...allSketches.value, currentSketchList];
+
     currentSketch.value = Sketch.fromDrawingMode(
       Sketch(
         points: [],
@@ -115,28 +122,29 @@ class DrawingCanvas extends HookWidget {
             ? eraserSize.value
             : strokeSize.value,
         color: drawingMode.value == DrawingMode.eraser
-            ?themeData.backgroundColor
+            ? themeData.backgroundColor
             : selectedColor.value,
         sides: polygonSides.value,
       ),
       drawingMode.value,
       filled.value,
     );
+
   }
 
   Widget buildAllSketches(BuildContext context) {
     final themeData = Theme.of(context);
     return LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
-      return ValueListenableBuilder<List<SketchEntity>>(
+      return ValueListenableBuilder<List<List<SketchEntity>>>(
         valueListenable: allSketches,
         builder: (context, sketches, _) {
           return RepaintBoundary(
             key: canvasGlobalKey,
             child: Container(
-              height: height,
               width: width,
-              color: themeData.backgroundColor,
+              height: height,
+              color: Colors.transparent,
               child: CustomPaint(
                 painter: SketchPainter(
                   sketches: sketches,
@@ -154,17 +162,20 @@ class DrawingCanvas extends HookWidget {
     return Listener(
       onPointerDown: (details) => onPointerDown(details, context),
       onPointerMove: (details) => onPointerMove(details, context),
-      onPointerUp:(details) => onPointerUp(details, context) ,
+      onPointerUp:(details) => onPointerUp(details, context),
+
       child: ValueListenableBuilder(
         valueListenable: currentSketch,
         builder: (context, sketch, child) {
+          final List<SketchEntity> sketchList = sketch != null ? [sketch] : [];
+          final List<List<SketchEntity>> nestedSketchList = [sketchList];
           return RepaintBoundary(
             child: SizedBox(
               height: height,
               width: width,
               child: CustomPaint(
                 painter: SketchPainter(
-                  sketches: sketch == null ? [] : [sketch],
+                  sketches:nestedSketchList,
                 ),
               ),
             ),

@@ -3,12 +3,12 @@ import 'package:note_app/features/main/domain/entity/sketch_entity.dart';
 
 class DataEntity extends Equatable {
   final String name;
-  final String text;
+  final List<String> text;
   final DateTime dateTime;
   final List<int> drawingBytes;
-  final String imagePath;
-  final String videoPath;
-  final List<SketchEntity>  sketchEntity;
+  final List<String> imagePath;
+  final List<String> videoPath;
+  final List<List<SketchEntity>>  sketchEntity;
 
   DataEntity(
       {required this.sketchEntity,

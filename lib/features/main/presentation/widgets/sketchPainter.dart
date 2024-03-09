@@ -6,7 +6,7 @@ import '../../data/model/sketch.dart';
 
 
 class SketchPainter extends CustomPainter {
-  final List<SketchEntity> sketches;
+  final List<List<SketchEntity>> sketches;
   final Image? backgroundImage;
 
   const SketchPainter({
@@ -17,35 +17,23 @@ class SketchPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // if (backgroundImage != null) {
-    //   canvas.drawImageRect(
-    //     backgroundImage!,
-    //     Rect.fromLTWH(
-    //       0,
-    //       0,
-    //       backgroundImage!.width!.toDouble(),
-    //       backgroundImage!.height!.toDouble(),
-    //     ),
-    //     Rect.fromLTWH(0, 0, size.width, size.height),
-    //     Paint(),
-    //   );
-    // }
-    for (SketchEntity sketch in sketches) {
-      final points = sketch.points;
-      if (points.isEmpty) return;
+    for (List<SketchEntity> sketchList in sketches) {
+      for (SketchEntity sketch in sketchList) {
+        final points = sketch.points;
+        if (points.isEmpty) continue;
 
-      final path = Path();
+        final path = Path();
 
-      path.moveTo(points[0].dx, points[0].dy);
-      if (points.length < 2) {
-        // If the path only has one line, draw a dot.
-        path.addOval(
-          Rect.fromCircle(
-            center: Offset(points[0].dx, points[0].dy),
-            radius: 1,
-          ),
-        );
-      }
+        path.moveTo(points[0].dx, points[0].dy);
+        if (points.length < 2) {
+          // If the path only has one line, draw a dot.
+          path.addOval(
+            Rect.fromCircle(
+              center: Offset(points[0].dx, points[0].dy),
+              radius: 1,
+            ),
+          );
+        }
 
       for (int i = 1; i < points.length - 1; ++i) {
         final p0 = points[i];
@@ -116,7 +104,7 @@ class SketchPainter extends CustomPainter {
         canvas.drawPath(polygonPath, paint);
       }
     }
-  }
+  }}
 
   @override
   bool shouldRepaint(covariant SketchPainter oldDelegate) {

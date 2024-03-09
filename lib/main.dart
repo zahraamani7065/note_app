@@ -10,7 +10,7 @@ import 'features/main/data/data_source/local/offset_adapter.dart';
 import 'features/main/data/data_source/local/sketch_type_adapter.dart';
 import 'features/main/data/model/sketch.dart';
 
-const taskBoxName="tasks";
+const taskBoxName="NoteAdapter";
 const drawingAdapter="DrawingAdapter";
 void main()async {
   WidgetsFlutterBinding.ensureInitialized();

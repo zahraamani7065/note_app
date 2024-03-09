@@ -87,29 +87,29 @@ class DataRepositoryImpl extends DataRepository {
     List<Data> tasks = box.values.toList();
     try {
 
-      List<DataEntity> data = tasks
-          .map(
-            (task) {
-              List<SketchEntity> sketchEntities = task.drawingDataList.map((drawingData) {
-                return SketchEntity(
-                  points: drawingData.points,
-                  size: drawingData.size,
-                  color: drawingData.color,
-                  filled: drawingData.filled,
-                  sides: drawingData.sides,
-                );
-              }).toList();
-              return  DataEntity(
-              name: task.name,
-              dateTime: task.dateTime,
-              text: task.text,
-              imagePath: task.imagePath,
-              videoPath: task.videoPath,
-              drawingBytes: task.drawingBytes,
-              sketchEntity:sketchEntities,
-            );}
-          )
-          .toList();
+      List<DataEntity> data = tasks.map((task) {
+        List<List<SketchEntity>> sketchEntitiesList = task.drawingDataList.map((drawingDataList) {
+          return drawingDataList.map((drawingData) {
+            return SketchEntity(
+              points: drawingData.points,
+              size: drawingData.size,
+              color: drawingData.color,
+              filled: drawingData.filled,
+              sides: drawingData.sides,
+            );
+          }).toList();
+        }).toList();
+
+        return DataEntity(
+          name: task.name,
+          dateTime: task.dateTime,
+          text: task.text,
+          imagePath: task.imagePath,
+          videoPath: task.videoPath,
+          drawingBytes: task.drawingBytes,
+          sketchEntity: sketchEntitiesList,
+        );
+      }).toList();
       return DataSuccess(data);
     } catch (e) {
       return DataFailed(e.toString());
