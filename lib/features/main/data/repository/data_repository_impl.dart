@@ -108,6 +108,7 @@ class DataRepositoryImpl extends DataRepository {
           videoPath: task.videoPath,
           drawingBytes: task.drawingBytes,
           sketchEntity: sketchEntitiesList,
+          elementOrder: task.elementOrder,
         );
       }).toList();
       return DataSuccess(data);

@@ -2,16 +2,19 @@ import 'package:equatable/equatable.dart';
 import 'package:note_app/features/main/domain/entity/sketch_entity.dart';
 
 class DataEntity extends Equatable {
-  final String name;
-  final List<String> text;
-  final DateTime dateTime;
-  final List<int> drawingBytes;
-  final List<String> imagePath;
-  final List<String> videoPath;
-  final List<List<SketchEntity>>  sketchEntity;
+   String name;
+   List<String> text;
+   DateTime dateTime;
+   List<int> drawingBytes;
+   List<String> imagePath;
+  List<String> videoPath;
+   List<List<SketchEntity>>  sketchEntity;
+   List<int> elementOrder;
 
   DataEntity(
-      {required this.sketchEntity,
+      {
+      required this.elementOrder,
+      required this.sketchEntity,
       required this.name,
       required this.text,
       required this.dateTime,
@@ -22,6 +25,6 @@ class DataEntity extends Equatable {
   @override
   // TODO: implement props
   List<Object?> get props => [sketchEntity, name, text, dateTime, drawingBytes,
-    imagePath,videoPath,
+    imagePath,videoPath,elementOrder
   ];
 }

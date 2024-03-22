@@ -8,7 +8,7 @@ part of 'drawing_data.dart';
 
 class DrawingAdapter extends TypeAdapter<DrawingData> {
   @override
-  final int typeId = 2;
+  final int typeId = 15;
 
   @override
   DrawingData read(BinaryReader reader) {

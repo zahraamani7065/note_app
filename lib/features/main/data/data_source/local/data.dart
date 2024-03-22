@@ -4,7 +4,7 @@ import 'package:note_app/features/main/domain/entity/sketch_entity.dart';
 import 'drawing_data.dart';
 part 'data.g.dart';
 
-@HiveType(adapterName: "NoteAdapter", typeId: 3)
+@HiveType(adapterName: "NoteAdapter", typeId:14)
 class Data {
   @HiveField(0)
   String name = '';
@@ -27,6 +27,9 @@ class Data {
   @HiveField(6)
   List<List<DrawingData>> drawingDataList = [];
 
+  @HiveField(7)
+  List<int> elementOrder = [];
+
 
   Data(this.name, this.dateTime, this.drawingBytes, this.imagePath, this.text,
       this.videoPath);
@@ -47,7 +50,7 @@ class Data {
     drawingBytes = dataEntity.drawingBytes;
     imagePath = dataEntity.imagePath;
     videoPath = dataEntity.videoPath;
-
+    elementOrder=dataEntity.elementOrder;
     drawingDataList =
         dataEntity.sketchEntity.map((List<SketchEntity> sketchList) {
           return sketchList.map((SketchEntity sketchEntity) {

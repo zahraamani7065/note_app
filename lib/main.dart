@@ -22,6 +22,7 @@ void main()async {
   Hive.registerAdapter<Color>(ColorAdapter());
   await Hive.openBox<DrawingData>(drawingAdapter);
   await Hive.openBox<Data>(taskBoxName);
+
   await setUp();
   runApp(const MyApp());
 }

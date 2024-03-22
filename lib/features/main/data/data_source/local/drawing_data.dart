@@ -4,7 +4,7 @@ import 'package:hive/hive.dart';
 import '../../model/sketch.dart';
 part 'drawing_data.g.dart';
 
-@HiveType(adapterName: "DrawingAdapter", typeId: 2)
+@HiveType(adapterName: "DrawingAdapter", typeId:15)
 class DrawingData {
   @HiveField(0)
    List<Offset> points = [];

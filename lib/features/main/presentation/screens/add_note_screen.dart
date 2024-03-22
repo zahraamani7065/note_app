@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
 
@@ -10,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:note_app/core/Services/locator.dart';
 import 'package:note_app/core/strings/string.dart';
@@ -21,16 +23,52 @@ import 'package:path/path.dart' as path;
 import 'package:video_player/video_player.dart';
 
 import '../../data/model/drawing_mode.dart';
+import '../../data/model/sketch.dart';
 import '../bloc/note_list_bloc.dart';
 import '../widgets/cannvas_side_bar.dart';
 import '../widgets/drawing_canvas.dart';
+import '../widgets/sketchPainter.dart';
 
 class AddNoteScreen extends HookWidget {
   final List<quill.QuillController> textControllers = [];
   final DataEntity? note;
+  late DataEntity data;
 
 
-  AddNoteScreen(this.note, {Key? key}) : super(key: key);
+  AddNoteScreen(this.note, {Key? key}) : super(key: key){
+    data = note != null ? _initializeDataEntity() : DataEntity(   sketchEntity: [],
+      name: "",
+      text: [],
+      dateTime: DateTime.now(),
+      drawingBytes: [],
+      imagePath: [],
+      videoPath: [],
+      elementOrder: [],);
+  }
+  DataEntity _initializeDataEntity() {
+    final List<int> elementOrder = [];
+
+    // Populate elementOrder based on note elements
+    for (final index in note!.elementOrder) {
+      if (index == DataElementType.sketch.index) {
+        elementOrder.add(DataElementType.sketch.index);
+      } else if (index == DataElementType.text.index) {
+        elementOrder.add(DataElementType.text.index);
+      }
+    }
+
+    return DataEntity(
+      sketchEntity: note!.sketchEntity,
+      name: note!.name,
+      text: note!.text,
+      dateTime: note!.dateTime,
+      drawingBytes: note!.drawingBytes,
+      imagePath: note!.imagePath,
+      videoPath: note!.videoPath,
+      elementOrder: elementOrder,
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +88,8 @@ class AddNoteScreen extends HookWidget {
     final quillControllers = useState<List<quill.QuillController>>([]);
     ValueNotifier<SketchEntity?> currentSketch = useState(null);
     ValueNotifier<List<List<SketchEntity>>> allSketches = useState([[]]);
+    final availableElements = useState<List<Widget>>([]);
+    OverlayEntry? _currentOverlayEntry;
     final animationController = useAnimationController(
       duration: const Duration(milliseconds: 150),
       initialValue: 1,
@@ -87,58 +127,15 @@ class AddNoteScreen extends HookWidget {
     }, [isWritingMode.value]);
 
     useEffect(() {
-      if (note == null) {
-        currentSketch.value = null;
-        allSketches.value = [];
-        textValue.value = [];
-      } else {
-        name = note!.name;
-        allSketches.value = note!.sketchEntity;
-        textValue.value = note!.text;
-      }
-      return null;
-    }, [note]);
-
-    useEffect(() {
       if (isWritingMode.value) {
         final newController = quill.QuillController.basic();
         textControllers.add(newController);
         quillControllers.value.add(newController);
-        textValue.value.add("");
+        // textValue.value.add("");
       }
       return null;
     }, [isWritingMode.value]);
 
-
-    DataEntity saveQuillText() {
-      textValue.value.clear();
-      for (final controller in quillControllers.value) {
-        final delta = controller.document.toDelta();
-        if (delta != null) {
-          final jsonString = jsonEncode(delta.toJson());
-          final sanitizedString = jsonString.replaceAll("\n", "");
-          textValue.value.add(sanitizedString);
-        }
-      }
-      final data = DataEntity(
-        sketchEntity: allSketches.value,
-        name: name?.toString() ?? "",
-        text: textValue.value,
-        dateTime: DateTime.now(),
-        drawingBytes: [],
-        imagePath: [],
-        videoPath: [],
-      );
-      return data;
-    }
-
-    OverlayEntry? _currentOverlayEntry;
-    void removeOverlay() {
-      _currentOverlayEntry?.remove();
-      _currentOverlayEntry = null;
-    }
-
-    ValueNotifier<bool> _showOverlay = ValueNotifier<bool>(false);
     Widget _buildQuillEditor(int index) {
       final controller = quillControllers.value[index];
       if (controller != null) {
@@ -156,6 +153,7 @@ class AddNoteScreen extends HookWidget {
                 enableInteractiveSelection: true,
                 requestKeyboardFocusOnCheckListChanged: false,
               ),
+
               focusNode: _focusNode,
               scrollController: Flutter.ScrollController(),
             ),
@@ -165,7 +163,53 @@ class AddNoteScreen extends HookWidget {
         return SizedBox();
       }
     }
-    final availableElements = useState<List<Widget>>([]);
+    DataEntity saveElements() {
+      final List<int> elementOrder = [];
+      textValue.value.clear();
+
+      // Save text values from Quill controllers
+      for (final controller in quillControllers.value) {
+        final delta = controller.document.toDelta();
+        final d=controller.document.toString();
+        print("$d documnet");
+        if (delta != null) {
+          final jsonString = jsonEncode(delta.toJson());
+          final sanitizedString = jsonString.replaceAll("\n", "");
+          textValue.value.add(sanitizedString);
+        }
+      }
+
+      // Update element order
+      for (final element in availableElements.value) {
+        if (element is DrawingCanvas) {
+          elementOrder.add(DataElementType.sketch.index);
+        } else if (element is GestureDetector) {
+          elementOrder.add(DataElementType.text.index);
+        }
+      }
+
+      final data = DataEntity(
+        sketchEntity: allSketches.value,
+        name: name?.toString() ?? "",
+        text: textValue.value,
+        dateTime: DateTime.now(),
+        drawingBytes: [],
+        imagePath: [],
+        videoPath: [],
+        elementOrder: elementOrder,
+      );
+
+      return data;
+    }
+
+    void removeOverlay() {
+      _currentOverlayEntry?.remove();
+      _currentOverlayEntry = null;
+    }
+
+    ValueNotifier<bool> _showOverlay = ValueNotifier<bool>(false);
+
+
 
     void showFormattingOptionsOverlay(Offset position) {
       removeOverlay();
@@ -243,7 +287,8 @@ class AddNoteScreen extends HookWidget {
                 ListTile(
                   title: Text((imageType.value == "large") ? "Small" : "Large"),
                   onTap: () {
-                    imageType.value = (imageType.value == "large") ? "small" : "large";
+                    imageType.value =
+                    (imageType.value == "large") ? "small" : "large";
                     Navigator.pop(context);
                     // Update the size of the selected image widget
                     for (int i = 0; i < availableElements.value.length; i++) {
@@ -256,9 +301,15 @@ class AddNoteScreen extends HookWidget {
                               _showImageOptions(context, uniqueId);
                             },
                             child: SizedBox(
-                              height: MediaQuery.of(context).size.height *
+                              height: MediaQuery
+                                  .of(context)
+                                  .size
+                                  .height *
                                   ((imageType.value == "large") ? 0.6 : 0.3),
-                              width: MediaQuery.of(context).size.width *
+                              width: MediaQuery
+                                  .of(context)
+                                  .size
+                                  .width *
                                   ((imageType.value == "large") ? 0.6 : 0.3),
                               child: image,
                             ),
@@ -291,7 +342,11 @@ class AddNoteScreen extends HookWidget {
     useEffect(() {
       if (_selectedFile.value != null) {
         final fileExtension =
-        _selectedFile.value!.path.split('.').last.toLowerCase();
+        _selectedFile.value!
+            .path
+            .split('.')
+            .last
+            .toLowerCase();
         final imageSize = (imageType.value == "large") ? 0.6 : 0.3;
         final uniqueId = UniqueKey();
 
@@ -303,8 +358,14 @@ class AddNoteScreen extends HookWidget {
               _showImageOptions(context, uniqueId);
             },
             child: SizedBox(
-              height: MediaQuery.of(context).size.height * imageSize,
-              width: MediaQuery.of(context).size.width * imageSize,
+              height: MediaQuery
+                  .of(context)
+                  .size
+                  .height * imageSize,
+              width: MediaQuery
+                  .of(context)
+                  .size
+                  .width * imageSize,
               child: VideoPlayerWidget(file: _selectedFile.value!),
             ),
           );
@@ -335,72 +396,61 @@ class AddNoteScreen extends HookWidget {
     }, [_selectedFile.value, imageType.value]);
 
 
+    useEffect(() {
+      availableElements.value.clear();
 
+      if (note != null) {
+        // Clear the existing elements
+        // availableElements.value.clear();
+        print(note!.elementOrder);
+        final text=note!.text;
+        print("$text is text ");
+        for (final index in note!.elementOrder) {
+          if (index == DataElementType.sketch.index) {
+            // Add sketches from note
+            for (final sketchList in note!.sketchEntity) {
+              allSketches.value.add(sketchList);
+              availableElements.value.add(DrawingCanvas(
+                key: UniqueKey(),
+                width:diagonalSize,
+                height: diagonalSize,
+                drawingMode: drawingMode,
+                selectedColor: selectedColor,
+                strokeSize: strokeSize,
+                eraserSize: eraserSize,
+                sideBarController: animationController,
+                currentSketch: currentSketch,
+                allSketches: allSketches,
+                canvasGlobalKey: GlobalKey(),
+                filled: filled,
+                polygonSides: polygonSides,
+                backgroundImage: backgroundImage,
+                isDrawingMode: isDrawingMode,
+              ));
+            }
+          } else if (index == DataElementType.text.index) {
+            // Add text editors from note
+            for (int i = 0; i < note!.text.length; i++) {
+              final newController = quill.QuillController.basic();
+              final jsonText = note!.text[i];
+              if (jsonText != null && jsonText!=" [{\"insert\":\"\n\"}]" && jsonText.isNotEmpty) {
+                final jsonList = jsonDecode(jsonText) as List<dynamic>;
+                newController.document = quill.Document.fromJson(jsonList);
+                print("$jsonList JSON LIST");
+                textControllers.add(newController);
+                quillControllers.value.add(newController);
+                availableElements.value.add(
+                    _buildQuillEditor(quillControllers.value.length - 1));
+                _focusNode.requestFocus();
+              }
+            }
+          }
+        }
+      }
 
+      return null;
+    }, [note]);
 
-
-    // useEffect(() {
-    //   if (_selectedFile.value != null) {
-    //     final imageSize = (imageType.value == "large") ? 0.6 : 0.3;
-    //     final fileExtension = path.extension(_selectedFile.value!.path).toLowerCase();
-    //     var gestureDetector;
-    //     if (fileExtension == '.mp4') {
-    //       gestureDetector = GestureDetector(
-    //         onLongPress: () {
-    //           AddNoteScreen.showImageOptions(context, _selectedFile.value!, diagonalSize, imageType.value, (selectedType) {
-    //             imageType.value = selectedType;
-    //             print("Selected file type: $imageType");
-    //           });
-    //         },
-    //         child: SizedBox(
-    //           height: diagonalSize * imageSize,
-    //           width: diagonalSize * imageSize,
-    //           child: VideoPlayerWidget(file: _selectedFile.value!),
-    //         ),
-    //       );
-    //     } else {
-    //       gestureDetector = GestureDetector(
-    //         onLongPress: () {
-    //           AddNoteScreen.showImageOptions(context, _selectedFile.value!, diagonalSize, imageType.value, (selectedType) {
-    //             imageType.value = selectedType;
-    //             print("Selected file type: $imageType");
-    //           });
-    //         },
-    //         child: SizedBox(
-    //           height: diagonalSize * imageSize,
-    //           width: diagonalSize * imageSize,
-    //           child: Image.file(
-    //             _selectedFile.value!,
-    //             fit: BoxFit.fill,
-    //           ),
-    //         ),
-    //       );
-    //     }
-    //
-    //     // Find and update the existing image widget
-    //     bool found = false;
-    //     for (int i = 0; i < availableElements.value.length; i++) {
-    //       Widget element = availableElements.value[i];
-    //       if (element is GestureDetector) {
-    //         Widget child = element.child!;
-    //         if (child is SizedBox && child.child is Image) {
-    //           Image image = child.child as Image;
-    //           if (image.image is FileImage && (image.image as FileImage).file.path == _selectedFile.value!.path) {
-    //             availableElements.value[i] = gestureDetector; // Update the existing image widget
-    //             found = true;
-    //             break;
-    //           }
-    //         }
-    //       }
-    //     }
-    //
-    //     // If the image widget doesn't exist, add it
-    //     if (!found) {
-    //       availableElements.value.add(gestureDetector);
-    //     }
-    //   }
-    //   return null;
-    // }, [_selectedFile.value, imageType.value]);
 
     return Scaffold(
       backgroundColor: themeData.backgroundColor,
@@ -422,48 +472,50 @@ class AddNoteScreen extends HookWidget {
                               ),
                               InkWell(
                                   onTap: () async {
-                                    saveQuillText();
                                     if (!isDrawingMode.value && name == null) {
                                       // Show dialog to get the name
                                       name = await showDialog(
                                         context: blocContext,
-                                        builder: (context) =>
-                                            AlertDialog(
-                                              title: Flutter.Text(
-                                                  'Enter a name'),
-                                              content: TextField(
-                                                onChanged: (value) =>
-                                                name = value,
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () {
-                                                    BlocProvider.of<
-                                                        NoteListBloc>(
-                                                        blocContext)
-                                                        .add(SaveDataEvent(
-                                                        saveQuillText()));
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                          builder: (context) =>
-                                                              HomeScreen()),
-                                                    );
-                                                  },
-                                                  child: Flutter.Text('OK'),
-                                                ),
-                                              ],
+                                        builder: (context) => AlertDialog(
+                                          title: Text('Enter a name'),
+                                          content: TextField(
+                                            onChanged: (value) => name = value,
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                // saveElements( textValue.value,
+                                                //   name,
+                                                //   allSketches.value,
+                                                //   availableElements.value,blocContext);
+                                                BlocProvider.of<NoteListBloc>(blocContext)
+                                                    .add(SaveDataEvent(saveElements(
+                                                )));
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(builder: (context) => HomeScreen()),
+                                                );
+                                              },
+                                              child: Text('OK'),
                                             ),
+                                          ],
+                                        ),
                                       );
                                     }
 
                                     if (name != null && !isDrawingMode.value) {
+                                      // saveElements( textValue.value,
+                                      //   name,
+                                      //   allSketches.value,
+                                      //   availableElements.value,
+                                      //   blocContext);
                                       BlocProvider.of<NoteListBloc>(blocContext)
-                                          .add(SaveDataEvent(saveQuillText()));
+                                          .add(SaveDataEvent(saveElements(
+
+                                      )));
                                       Navigator.push(
                                         context,
-                                        MaterialPageRoute(
-                                            builder: (context) => HomeScreen()),
+                                        MaterialPageRoute(builder: (context) => HomeScreen()),
                                       );
                                     }
 
@@ -471,7 +523,7 @@ class AddNoteScreen extends HookWidget {
                                       isDrawingMode.value = false;
                                     }
                                   },
-                                  child: Flutter.Text(
+                                  child: Text(
                                     AppStrings.done,
                                     style: themeData.textTheme.headline5,
                                   )),
@@ -603,127 +655,54 @@ class AddNoteScreen extends HookWidget {
       ),
     );
   }
-  // static void showImageOptions(BuildContext context, File selectedFile, double diagonalSize, String currentFileType, void Function(String) onFileTypeSelected, void Function() onResize) {
-  //   String newFileType = currentFileType;
-  //   showModalBottomSheet(
-  //     context: context,
-  //     builder: (context) {
-  //       return Container(
-  //         child: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           children: [
-  //             ListTile(
-  //               title: Text((currentFileType == "large") ? "small" : "large"),
-  //               onTap: () {
-  //                 newFileType = (currentFileType == "large") ? "small" : "large";
-  //                 Navigator.pop(context);
-  //                 onFileTypeSelected(newFileType); // Pass the selected file type to the callback function
-  //                 onResize(); // Trigger the resize action
-  //               },
-  //             ),
-  //             ListTile(
-  //               title: Text('Remove'),
-  //               onTap: () {
-  //                 selectedFile =null;
-  //                 Navigator.pop(context);
-  //               },
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
-// String _showImageOptions(BuildContext context, File selectedFile,
-  //     double diagonalSize, String currentFileType) {
+  // void saveElements(
+  //     List<String> textValues,
+  //     String? name,
+  //     List<List<SketchEntity>> allSketches,
+  //     List<Widget> availableElements,
+  //      context
+  //     ) {
+  //   final List<int> elementOrder = [];
   //
-  //   late String newFileType="large";
-  //   showModalBottomSheet(
-  //     context: context,
-  //     builder: (context) {
-  //       return Container(
-  //         child: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           children: [
-  //             ListTile(
-  //               title: Text((currentFileType == "large") ? "small" : "large"),
-  //               onTap: () {
-  //                 newFileType = (currentFileType == "large") ? "small" : "large";
-  //                 Navigator.pop(context);
-  //                 // print("$newFileType current fyle");
-  //               },
-  //             ),
-  //             ListTile(
-  //               title: Text('Remove'),
-  //               onTap: () {
-  //                 Navigator.pop(context);
-  //               },
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  //   print("$newFileType current fyle");
-  //   return newFileType;
-  //
-  // }
-
-  // Widget _displaySelectedFile(File _selectedFile, context, String imageType, double diagonalSize) {
-  //   final fileExtension = path.extension(_selectedFile.path).toLowerCase();
-  //   final imageSize = (imageType == "large") ? 0.6 : 0.3;
-  //   print("$imageSize imagesize");
-  //
-  //   if (fileExtension == '.mp4') {
-  //     return GestureDetector(
-  //       onLongPress: () {
-  //         // Show options for changing image size
-  //         _showImageOptions(context, _selectedFile, diagonalSize, imageType);
-  //       },
-  //       child: SizedBox(
-  //         height: diagonalSize * imageSize,
-  //         width: diagonalSize * imageSize,
-  //         child: VideoPlayerWidget(file: _selectedFile),
-  //       ),
-  //     );
-  //   } else {
-  //     return GestureDetector(
-  //       onLongPress: () {
-  //         _showImageOptions(context, _selectedFile, diagonalSize, imageType);
-  //       },
-  //       child: SizedBox(
-  //         height: diagonalSize * imageSize,
-  //         width: diagonalSize * imageSize,
-  //         child: Image.file(
-  //           _selectedFile,
-  //           fit: BoxFit.fill,
-  //         ),
-  //       ),
-  //     );
+  //   // Populate elementOrder based on availableElements
+  //   for (final element in availableElements) {
+  //     if (element is DrawingCanvas) {
+  //       elementOrder.add(DataElementType.sketch.index);
+  //     } else if (element is GestureDetector) {
+  //       elementOrder.add(DataElementType.text.index);
+  //     }
   //   }
+  //
+  //   // Update data entity properties
+  //   data.sketchEntity = allSketches;
+  //   data.name = name ?? "";
+  //   data.text = textValues;
+  //   data.dateTime = DateTime.now();
+  //   data.elementOrder = elementOrder;
+  //
+  //   // Dispatch SaveDataEvent with the updated data entity
+  //   BlocProvider.of<NoteListBloc>(context).add(SaveDataEvent(data));
   // }
-
-
 }
 
 
-  Future<void> uploadFile(
-      BuildContext context, ValueNotifier<File?> _selectedFile) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov', 'avi'],
-    );
 
-    if (result != null) {
-      String? filePath = result.files.single.path;
-      if (filePath != null) {
-        final file = File(filePath);
-        _selectedFile.value = file;
-      }
-    } else {
+Future<void> uploadFile(BuildContext context,
+    ValueNotifier<File?> _selectedFile) async {
+  FilePickerResult? result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov', 'avi'],
+  );
 
+  if (result != null) {
+    String? filePath = result.files.single.path;
+    if (filePath != null) {
+      final file = File(filePath);
+      _selectedFile.value = file;
     }
+  } else {
 
+  }
 }
 
 
@@ -751,28 +730,28 @@ class VideoPlayerWidget extends HookWidget {
 
     return _controller.value.isInitialized
         ? AspectRatio(
-            aspectRatio: _controller.value.aspectRatio,
-            child: Stack(
-              children: [
-                VideoPlayer(_controller),
-                Align(
-                  alignment: Alignment.center,
-                  child: IconButton(
-                    icon:
-                        Icon(isPlaying.value ? Icons.pause : Icons.play_arrow),
-                    onPressed: () {
-                      if (isPlaying.value) {
-                        _controller.pause();
-                      } else {
-                        _controller.play();
-                      }
-                      isPlaying.value = !isPlaying.value;
-                    },
-                  ),
-                ),
-              ],
+      aspectRatio: _controller.value.aspectRatio,
+      child: Stack(
+        children: [
+          VideoPlayer(_controller),
+          Align(
+            alignment: Alignment.center,
+            child: IconButton(
+              icon:
+              Icon(isPlaying.value ? Icons.pause : Icons.play_arrow),
+              onPressed: () {
+                if (isPlaying.value) {
+                  _controller.pause();
+                } else {
+                  _controller.play();
+                }
+                isPlaying.value = !isPlaying.value;
+              },
             ),
-          )
+          ),
+        ],
+      ),
+    )
         : CircularProgressIndicator(); // Show loading indicator until video is initialized
   }
 
@@ -858,4 +837,10 @@ class _CustomAppBar extends StatelessWidget {
       ),
     );
   }
+}
+enum DataElementType {
+  sketch,
+  text,
+  image,
+  video,
 }
